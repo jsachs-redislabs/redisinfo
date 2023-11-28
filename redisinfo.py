@@ -90,11 +90,10 @@ class KBHit:
 
 def connect_to_redis(**conf):
     try:
-        # r = redis.StrictRedis(**conf)
-        r = redis.StrictRedis(**conf)
+        r = redis.Redis(**conf)
         r.ping()
     except Exception as e:
-        print e
+        print(e)
         exit()
     return r
 
@@ -115,24 +114,28 @@ def get_connection_config(args):
     args[0] = *ignored*
     args[1] = host:port
     args[2] = password (optional)
+    args[3] = ssl (optional)
     args[n] = *ignored*
 
     XXX: current arg error checking is minimal
     '''
 
     auth = ''
+    ssl = False
     [host, port] = args[1].split(':')
     if len(args) > 2:
         auth = args[2]
+    if len(args) > 3:
+        ssl = args[3] == 'ssl'
     connection_config = {
-        'host': host, 'port': port, 'password': auth
+        'host': host, 'port': port, 'password': auth, 'ssl': ssl
     }
     return connection_config
 
 def display_commandstats(cslast, csthis, sort, calcint, displayint):
     '''
     Function to display the command stats data
-    This funtion takes two commandstats dictionaries (last and this), a sort
+    This function takes two commandstats dictionaries (last and this), a sort
     value, an interval to use for calculations and an interval used for display
 
     cslast = the 'last' or previous commandstats in dictionary format
@@ -165,9 +168,9 @@ def display_commandstats(cslast, csthis, sort, calcint, displayint):
         'exec'
     ]
     display = []
-    for call, data in csthis.iteritems():
-        # print "processing call =>{}<= data =>{}<=".format(call, data)
-        # print "comparing to =>{}<=".format(cslast[call])
+    for call, data in iter(csthis.items()):
+        # print("processing call =>{}<= data =>{}<=".format(call, data))
+        # print("comparing to =>{}<=".format(cslast[call]))
         if call in cslast:
             calls = data['calls']
             diff = int(calls) - int(cslast[call]['calls'])
@@ -179,13 +182,13 @@ def display_commandstats(cslast, csthis, sort, calcint, displayint):
                 (callstr ,calls, diff, diff/calcint, usecpm)
             )
 
-    #print "\n"
+    #print("\n")
     headers = ['call', 'total', 'since last int', 'calls/sec', 'usec/call']
     floatfmt = ('','','','.0f','.2f')
-    print "refresh interval: {} seconds (press +/- to change)".format(displayint)
-    print "sorting on \'{}\'".format(headers[sort])
+    print("refresh interval: {} seconds (press +/- to change)".format(displayint))
+    print("sorting on \'{}\'".format(headers[sort]))
     display = sorted(display, key=lambda d: float(d[sort]), reverse=True)
-    print tabulate.tabulate(display, headers, floatfmt=floatfmt)
+    print(tabulate.tabulate(display, headers, floatfmt=floatfmt))
 
 def display_header(redisinfo, lastinfo=None):
     '''
@@ -217,7 +220,7 @@ uptime: {uptime_in_days} days, replication role: {role}, connected slaves: {conn
 {instantaneous_ops_per_sec} ops/sec, input: {instantaneous_input_kbps} kbps, output: {instantaneous_output_kbps} kbps
 '''
 
-    print header.format(**redisinfo)
+    print(header.format(**redisinfo))
 
 
 def main():
@@ -226,7 +229,7 @@ def main():
     args = get_command_line_args()
     connect_config = get_connection_config(args)
     redis = connect_to_redis(**connect_config)
-    print "Connected to Redis."
+    print("Connected to Redis.")
     cslast = False
     csthis = False
     infolast = False
@@ -240,7 +243,7 @@ def main():
             cslast = redis.info('commandstats')
             infolast = redis.info()
             display_header(infolast)
-            print "Got first commandstats, waiting {} seconds to get the next.".format(interval)
+            print("Got first commandstats, waiting {} seconds to get the next.".format(interval))
             continue
 
         # thisint will be the actual interval for this cycle
@@ -269,11 +272,11 @@ def main():
             elif c.isdigit():
                 c = int(c)
                 if c not in range(1,5):
-                    print "ERROR: sort option must be 1-4"
+                    print("ERROR: sort option must be 1-4")
                 else:
                     sort = c
             else:
-                print "ERROR: sort option must be 1-4"
+                print("ERROR: sort option must be 1-4")
 
             # set the actual interval for use in stats calculations
             thisint = round(waited, 0)
@@ -290,7 +293,7 @@ def main():
         ## display commandstats
         display_commandstats(cslast, csthis, sort, thisint, interval)
 
-        print "sort on numeric columns by pressing 1-4. press esc to exit."
+        print("sort on numeric columns by pressing 1-4. press esc to exit.")
 
         cslast = csthis
         infolast = infothis
