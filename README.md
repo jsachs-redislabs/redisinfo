@@ -19,6 +19,9 @@ example execution:
 or with auth:
    ```python redisinfo.py my-redis-endpoint.com:15151 mypassword```
 
+or with auth and ssl:
+   ```python redisinfo.py my-redis-endpoint.com:15151 mypassword ssl```
+
 Once started, the script runs forever until killed by
 pressing 'q', 'esc' or ctrl-C if you are feeling violent.
 The display 'refreshes' on an interval that can be changed by
